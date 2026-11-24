@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal AI Mentor: Complete System Flow Map</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+    
+    :root {
+      --bg: #07070a;
+      --surface: #0e0e14;
+      --surface2: #14141f;
+      --border: rgba(255, 255, 255, 0.05);
+      --text: #f3f3f7;
+      --muted: #828099;
+      --accent: #6366f1;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 40px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, #818cf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: var(--text);
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+    }
+
+    p.desc {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .diagram-wrapper {
+      background: #0d0f14;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+
+    .mermaid {
+      background: transparent;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-family: 'Outfit', sans-serif;
+      color: var(--text);
+      font-weight: 600;
+      background: var(--surface2);
+    }
+
+    td {
+      font-size: 13.5px;
+      color: var(--muted);
+    }
+
+    tr:hover td {
+      color: var(--text);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      theme: 'dark',
+      startOnLoad: true,
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      securityLevel: 'loose'
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Personal AI Mentor: Complete System Flow Map</h1>
+      <p class="subtitle">Visual representation of data flows, background worker loops, and retrieval stages.</p>
+    </header>
+
+    <!-- SECTION 1 -->
+    <div class="card">
+      <h2>1. Main Application Lifecycle & Tag-Based Context Routing</h2>
+      <p class="desc">Execution path from initial boot and Daily Startup dashboard, through `@` tag parsing, to isolated RAG prompt building.</p>
+      <div class="diagram-wrapper">
+        <div class="mermaid">
+          flowchart TD
+              Start([1. Start: python mentor.py]) --> SessionId[Generate Session ID & Ping Ollama]
+              SessionId --> PingCheck{Ollama Online?}
+              
+              %% Fail Path
+              PingCheck -->|No| OfflineErr[Print Friendly Error & Terminate]
+              OfflineErr --> End([End])
+              
+              %% Success Path
+              PingCheck -->|Yes| StartupScreen[Query metrics & Display Daily Startup Screen]
+              StartupScreen --> MainLoop[Show Status: Listening]
+              
+              %% Chat input
+              MainLoop --> Input[User Query Input]
+              Input --> TagParser[Regex Tag Parser: @technical, @outreach, @career, @hybrid]
+              
+              %% Routing Decisions
+              TagParser -->|Has Tag| RAGFilter[Direct RAG Filter]
+              TagParser -->|No Tag| DefaultHybrid[Default to Hybrid RAG Mode]
+              
+              %% Context Isolation
+              RAGFilter -->|@technical| RAGFilterTech[Technical RAG Context]
+              RAGFilter -->|@outreach| RAGFilterOutreach[Outreach RAG Context]
+              RAGFilter -->|@career| RAGFilterCareer[Career RAG Context]
+              RAGFilter -->|@hybrid| RAGFilterHybrid[Hybrid/Global RAG Context]
+              DefaultHybrid --> RAGFilterHybrid
+              
+              %% Read Paths
+              RAGFilterTech -->|Query tech notes only| Prompter[System Prompt Builder]
+              RAGFilterOutreach -->|Query resume + job logs| Prompter
+              RAGFilterCareer -->|Query goals + journal| Prompter
+              RAGFilterHybrid -->|Global FTS5 match| Prompter
+              
+              %% Working Memory loading
+              WorkingMem[(SQLite working_memory)] -->|Loaded First| Prompter
+              
+              %% Synthesize & Generate
+              Prompter --> LocalLLM[Local LLM Generation]
+              
+              %% Output
+              LocalLLM --> PrintResponse[Print Response to User Immediately]
+              PrintResponse --> TriggerAsync[Spawn Async Memory Extractor Thread]
+              TriggerAsync --> MainLoop
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="card">
+      <h2>2. Asynchronous Memory Update Loop (Background Thread)</h2>
+      <p class="desc">Background data consolidation, JSON validation, SHA-256 fact deduplication, and SQLite WAL merging.</p>
+      <div class="diagram-wrapper">
+        <div class="mermaid">
+          flowchart TD
+              Trigger([Trigger Async Memory Extractor]) --> QueueTask[Enqueue Conversation Segment]
+              QueueTask --> LLMExtract[Call Local LLM: Extract Facts, Decisions & Anti-patterns]
+              LLMExtract --> JSONCheck{Valid JSON Output?}
+              
+              %% JSON Validation Fallbacks
+              JSONCheck -->|No: Malformed| RegexParse[Run Regex Selector extraction]
+              RegexParse --> RegexCheck{Regex Match Successful?}
+              RegexCheck -->|No| DLQ[Log Raw Output to dead_letter_queue.log]
+              RegexCheck -->|Yes| ParseJSON[Parse JSON String]
+              JSONCheck -->|Yes| ParseJSON
+              
+              %% Database Merging & Deduplication
+              ParseJSON --> LoopItems[Loop through New Facts / Decisions]
+              LoopItems --> NormalizeText[Normalize String & Compute SHA-256 Hash]
+              NormalizeText --> CheckHash{Hash Exists in SQLite?}
+              
+              CheckHash -->|Yes| SkipItem[Discard Duplicate Memory]
+              CheckHash -->|No| SQLiteInsert[Insert into SQLite 'memories' Table]
+              
+              %% WAL Lock Handling
+              SQLiteInsert --> LockCheck{Database Locked OperationError?}
+              LockCheck -->|Yes| RetryLock[Sleep 100ms & Retry Transaction]
+              RetryLock --> SQLiteInsert
+              LockCheck -->|No| UpdateFTS[Insert Content into 'memories_fts' Virtual Table]
+              
+              UpdateFTS --> LoopItems
+              SkipItem --> LoopItems
+              DLQ --> BackgroundEnd([Background Thread Sleep / Exit])
+              SQLiteInsert --> BackgroundEnd
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="card">
+      <h2>3. SQLite FTS5 BM25 Memory Retrieval Engine (Hybrid Check)</h2>
+      <p class="desc">Selective cross-domain retrieval path showing how keywords pull matching contexts from multiple tables simultaneously.</p>
+      <div class="diagram-wrapper">
+        <div class="mermaid">
+          flowchart LR
+              Query[User Query: 'LangChain cold email frustration'] --> SearchTokens[Extract Tokens: LangChain, email, frustration]
+              SearchTokens --> FTS5Query[SQL SELECT memories_fts MATCH search_tokens]
+              
+              %% BM25 Scoring
+              FTS5Query --> BM25[SQLite BM25 Ranking Engine]
+              BM25 --> Sort[Sort by Score DESC]
+              Sort --> Limit[Limit to Top 5-10 Results]
+              Limit --> Inject[Format into System Prompt Block]
+              
+              %% Prompt Block Example
+              subgraph Global Prompt Block (Cross-Domain Hybrid)
+                  Inject --> PB["=== RETRIEVED CONTEXT ===
+- Category: technical -> LangChain project bullets (Resume table)
+- Category: personal_goal -> Wants full-time AI role (Profile table)
+- Category: anti_pattern -> Procrastination triggers (Journal table)"]
+              end
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="card">
+      <h2>4. State Transition Matrix</h2>
+      <p class="desc">Summary of program states and execution triggers.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Current State</th>
+            <th>Input Action</th>
+            <th>Next State</th>
+            <th>Background Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Initializing</strong></td>
+            <td>Ollama online status checked</td>
+            <td><strong>Daily Startup</strong></td>
+            <td>Ping localhost:11434; load `working_memory`</td>
+          </tr>
+          <tr>
+            <td><strong>Daily Startup</strong></td>
+            <td>Display metrics & decisions</td>
+            <td><strong>Listening</strong></td>
+            <td>Render initial UX screen</td>
+          </tr>
+          <tr>
+            <td><strong>Listening</strong></td>
+            <td>User types query with `@tag` (or defaults to auto-routing)</td>
+            <td><strong>Generating (Selected Mode)</strong></td>
+            <td>Query SQLite FTS5 matching tag scope; compile prompt; send to Ollama</td>
+          </tr>
+          <tr>
+            <td><strong>Generating</strong></td>
+            <td>Answer finished generating</td>
+            <td><strong>Listening</strong></td>
+            <td>Spawn background thread with segment</td>
+          </tr>
+          <tr>
+            <td><strong>Listening</strong></td>
+            <td>User types `/resolve &lt;id&gt;`</td>
+            <td><strong>Listening</strong></td>
+            <td>Update `decisions` set status='resolved'</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
